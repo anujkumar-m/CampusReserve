@@ -1,0 +1,183 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* College Resource Booking System - Design System
+   Clean, modern, institutional design with teal primary and warm accents
+   All colors in HSL format
+*/
+
+@layer base {
+  :root {
+    --background: 180 20% 99%;
+    --foreground: 200 25% 15%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 25% 15%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 25% 15%;
+
+    --primary: 174 62% 35%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 180 15% 95%;
+    --secondary-foreground: 200 25% 20%;
+
+    --muted: 180 10% 96%;
+    --muted-foreground: 200 15% 45%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 180 15% 90%;
+    --input: 180 15% 90%;
+    --ring: 174 62% 35%;
+
+    --radius: 0.625rem;
+
+    --sidebar-background: 180 20% 98%;
+    --sidebar-foreground: 200 20% 25%;
+    --sidebar-primary: 174 62% 35%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 174 40% 95%;
+    --sidebar-accent-foreground: 174 62% 30%;
+    --sidebar-border: 180 15% 92%;
+    --sidebar-ring: 174 62% 35%;
+
+    /* Custom tokens for the booking system */
+    --status-pending: 38 92% 50%;
+    --status-approved: 142 71% 45%;
+    --status-rejected: 0 72% 51%;
+    
+    --resource-classroom: 217 91% 60%;
+    --resource-lab: 280 65% 60%;
+    --resource-seminar: 174 62% 45%;
+  }
+
+  .dark {
+    --background: 200 25% 8%;
+    --foreground: 180 15% 95%;
+
+    --card: 200 25% 10%;
+    --card-foreground: 180 15% 95%;
+
+    --popover: 200 25% 10%;
+    --popover-foreground: 180 15% 95%;
+
+    --primary: 174 62% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 200 20% 15%;
+    --secondary-foreground: 180 15% 90%;
+
+    --muted: 200 20% 18%;
+    --muted-foreground: 180 10% 60%;
+
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 80% 45%;
+    --warning-foreground: 0 0% 100%;
+
+    --border: 200 20% 18%;
+    --input: 200 20% 18%;
+    --ring: 174 62% 45%;
+
+    --sidebar-background: 200 25% 7%;
+    --sidebar-foreground: 180 15% 90%;
+    --sidebar-primary: 174 62% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 200 20% 15%;
+    --sidebar-accent-foreground: 174 50% 60%;
+    --sidebar-border: 200 20% 15%;
+    --sidebar-ring: 174 62% 45%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold tracking-tight text-foreground;
+  }
+}
+
+@layer components {
+  /* Status badge variants */
+  .status-pending {
+    @apply bg-[hsl(var(--status-pending)/0.15)] text-[hsl(var(--status-pending))] border-[hsl(var(--status-pending)/0.3)];
+  }
+
+  .status-approved {
+    @apply bg-[hsl(var(--success)/0.15)] text-[hsl(var(--success))] border-[hsl(var(--success)/0.3)];
+  }
+
+  .status-rejected {
+    @apply bg-[hsl(var(--destructive)/0.15)] text-destructive border-[hsl(var(--destructive)/0.3)];
+  }
+
+  /* Resource type indicators */
+  .resource-classroom {
+    @apply bg-[hsl(var(--resource-classroom)/0.15)] text-[hsl(var(--resource-classroom))];
+  }
+
+  .resource-lab {
+    @apply bg-[hsl(var(--resource-lab)/0.15)] text-[hsl(var(--resource-lab))];
+  }
+
+  .resource-seminar {
+    @apply bg-[hsl(var(--resource-seminar)/0.15)] text-[hsl(var(--resource-seminar))];
+  }
+
+  /* Card hover animation */
+  .card-interactive {
+    @apply transition-all duration-200 ease-out hover:shadow-lg hover:shadow-primary/5 hover:-translate-y-0.5;
+  }
+
+  /* Dashboard stat card */
+  .stat-card {
+    @apply bg-card rounded-xl p-5 border border-border shadow-sm;
+  }
+
+  /* Smooth page transitions */
+  .page-transition {
+    @apply animate-in fade-in slide-in-from-bottom-2 duration-300;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .gradient-primary {
+    @apply bg-gradient-to-r from-primary to-[hsl(var(--primary)/0.8)];
+  }
+
+  .gradient-accent {
+    @apply bg-gradient-to-r from-accent to-[hsl(var(--accent)/0.85)];
+  }
+}

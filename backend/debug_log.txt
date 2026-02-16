@@ -1,0 +1,14 @@
+2026-02-14T16:52:52.378Z - Request received from User: 699099fd7f7fde098e75d6a4, Role: infraAdmin, Dept: undefined
+2026-02-14T16:52:52.383Z - Role is InfraAdmin. Fetching fixed resources...
+2026-02-14T16:52:52.432Z - Found 8 fixed resources.
+2026-02-14T16:52:52.433Z - Query prepared with 8 resource IDs.
+2026-02-14T16:52:52.434Z - Executing Booking.find with query: {"status":{"$in":["pending_admin","pending_hod"]},"resourceId":{"$in":["699008b24afb588f4eb767ee","699008b24afb588f4eb767ef","69900d6aeb1d20e42a528b24","699098508e68ddb8e459ff52","699098508e68ddb8e459ff55","699098508e68ddb8e459ff59","699098508e68ddb8e459ff5c","699098508e68ddb8e459ff5f"]}}
+2026-02-14T16:52:52.540Z - Found 3 bookings.
+2026-02-14T16:52:52.542Z - ERROR: Cannot read properties of null (reading '_id')
+2026-02-14T16:53:40.117Z - Request received from User: 699099fd7f7fde098e75d6a4, Role: infraAdmin, Dept: undefined
+2026-02-14T16:53:40.118Z - Role is InfraAdmin. Fetching fixed resources...
+2026-02-14T16:53:40.172Z - Found 8 fixed resources.
+2026-02-14T16:53:40.173Z - Query prepared with 8 resource IDs.
+2026-02-14T16:53:40.174Z - Executing Booking.find with query: {"status":{"$in":["pending_admin","pending_hod"]},"resourceId":{"$in":["699008b24afb588f4eb767ee","699008b24afb588f4eb767ef","69900d6aeb1d20e42a528b24","699098508e68ddb8e459ff52","699098508e68ddb8e459ff55","699098508e68ddb8e459ff59","699098508e68ddb8e459ff5c","699098508e68ddb8e459ff5f"]}}
+2026-02-14T16:53:40.290Z - Found 3 bookings.
+2026-02-14T16:53:40.292Z - ERROR: Cannot read properties of null (reading '_id')
