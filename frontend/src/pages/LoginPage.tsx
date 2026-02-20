@@ -134,11 +134,38 @@ export default function LoginPage() {
               Sign in with Google
             </Button>
 
-            <p className="text-xs text-muted-foreground text-center">
-              Use your institutional email or Google account
-            </p>
-
-
+            {/* Test Accounts Info */}
+            <div className="mt-6 pt-4 border-t border-border/50">
+              <button
+                type="button"
+                className="text-xs text-muted-foreground flex items-center justify-center w-full hover:text-foreground transition-colors"
+                onClick={() => {
+                  const el = document.getElementById('test-accounts');
+                  if (el) el.classList.toggle('hidden');
+                }}
+              >
+                Need test accounts? Click here
+              </button>
+              <div id="test-accounts" className="hidden mt-3 space-y-3 bg-muted/30 p-3 rounded-lg border border-border/50">
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">Infrastructure Admin</p>
+                  <code className="text-[10px] block bg-background p-1.5 rounded border border-border/50 select-all">
+                    infraadmin@bitsathy.ac.in<br />
+                    Admin@123
+                  </code>
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold uppercase text-muted-foreground mb-1">IT Services Admin</p>
+                  <code className="text-[10px] block bg-background p-1.5 rounded border border-border/50 select-all">
+                    itadmin@bitsathy.ac.in<br />
+                    Admin@123
+                  </code>
+                </div>
+                <p className="text-[9px] text-center text-muted-foreground">
+                  Roles have access to manage their respective resources
+                </p>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

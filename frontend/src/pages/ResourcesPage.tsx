@@ -48,32 +48,32 @@ export default function ResourcesPage() {
         resource.location.toLowerCase().includes(search.toLowerCase());
       const matchesType = typeFilter === 'all' || resource.type === typeFilter;
 
-      // User specific restrictions
-      if (user?.role === 'student' && user.department) {
-        if (resource.department !== user.department) return false;
+      if (!matchesSearch || !matchesType) return false;
+
+      // Role-based visibility logic
+      const isMyDept = resource.department === user?.department;
+
+      // 1. HOD (Department) Role Logic
+      if (user?.role === 'department') {
+        if (categoryFilter === 'my_dept') return isMyDept;
+        if (categoryFilter === 'infrastructure') return resource.category !== 'movable_asset';
+        if (categoryFilter === 'movable') return resource.category === 'movable_asset';
+        if (categoryFilter === 'all') return true; // Show everything in 'all' view
       }
 
-      // For department (HOD) logic is handled by the tab functionality mostly, 
-      // but we ensure they don't see Other Department's restricted items in the 'infrastructure' tab
-      if (user?.role === 'department' && user.department) {
-        if (resource.category === 'department' && resource.department !== user.department) return false;
+      // 2. Student Role Logic
+      if (user?.role === 'student') {
+        // Students usually only see their own department's resources or central ones
+        // Adjust if they should see all infra too, but for now keep it restricted to dept
+        if (resource.category === 'department' && !isMyDept) return false;
       }
 
-      // Tab Category Filter
-      if (categoryFilter === 'my_dept') {
-        // Strictly my department's resources
-        if (resource.department !== user?.department) return false;
-      }
-      if (categoryFilter === 'infrastructure') {
-        // All Fixed Resources (Central + My Dept)
-        if (resource.category === 'movable_asset') return false;
-      }
-      if (categoryFilter === 'movable') {
-        // All Movable Resources
-        if (resource.category !== 'movable_asset') return false;
-      }
+      // 3. Tab Category Filters (General)
+      if (categoryFilter === 'my_dept') return isMyDept;
+      if (categoryFilter === 'infrastructure') return resource.category !== 'movable_asset';
+      if (categoryFilter === 'movable') return resource.category === 'movable_asset';
 
-      return matchesSearch && matchesType;
+      return true;
     });
   };
 

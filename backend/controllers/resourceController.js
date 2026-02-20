@@ -28,7 +28,7 @@ exports.getResources = async (req, res) => {
         } else if (userRole === 'department') {
             // HOD can see all department resources + central resources + movable assets
             query.$or = [
-                { category: 'department', department: userDepartment },
+                { category: 'department' },
                 { category: 'central' },
                 { category: 'movable_asset' }
             ];

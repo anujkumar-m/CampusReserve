@@ -28,6 +28,10 @@ const accounts = [
     { name: 'NSS Club', email: 'nss@bitsathy.ac.in', password: 'Club@123', role: 'club', clubName: 'NSS', authProvider: 'local' },
     { name: 'NCC Club', email: 'ncc@bitsathy.ac.in', password: 'Club@123', role: 'club', clubName: 'NCC', authProvider: 'local' },
     { name: 'Rotaract Club', email: 'rotaract@bitsathy.ac.in', password: 'Club@123', role: 'club', clubName: 'Rotaract', authProvider: 'local' },
+
+    // Admin Accounts
+    { name: 'Infrastructure Admin', email: 'infraadmin@bitsathy.ac.in', password: 'Admin@123', role: 'infraAdmin', authProvider: 'local' },
+    { name: 'IT Services Admin', email: 'itadmin@bitsathy.ac.in', password: 'Admin@123', role: 'itAdmin', authProvider: 'local' },
 ];
 
 const seedAccounts = async () => {

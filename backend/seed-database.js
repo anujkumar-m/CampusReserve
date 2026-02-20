@@ -16,14 +16,14 @@ const seedDatabase = async () => {
             {
                 name: 'Infrastructure Admin',
                 email: 'infraadmin@bitsathy.ac.in',
-                password: 'admin@123',
+                password: 'Admin@123',
                 role: 'infraAdmin',
                 authProvider: 'local',
             },
             {
                 name: 'IT Service Admin',
                 email: 'itadmin@bitsathy.ac.in',
-                password: 'admin@123',
+                password: 'Admin@123',
                 role: 'itAdmin',
                 authProvider: 'local',
             },
@@ -201,8 +201,8 @@ const seedDatabase = async () => {
         console.log(`  Bookings: ${await Booking.countDocuments()}`);
 
         console.log('\n🔐 Login credentials:');
-        console.log('  Infrastructure Admin: infraadmin@bitsathy.ac.in / admin@123');
-        console.log('  IT Service Admin: itadmin@bitsathy.ac.in / admin@123');
+        console.log('  Infrastructure Admin: infraadmin@bitsathy.ac.in / Admin@123');
+        console.log('  IT Service Admin: itadmin@bitsathy.ac.in / Admin@123');
 
         process.exit(0);
     } catch (error) {
