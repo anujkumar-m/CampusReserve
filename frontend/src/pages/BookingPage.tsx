@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookingType } from '@/types';
+import { BookingType, PriorityLevel } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,27 @@ import { format } from 'date-fns';
 import { CalendarIcon, Building2, Users, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+
+// Priority mapping for booking types (admin-visible only)
+export const BOOKING_TYPE_PRIORITY: Record<BookingType, PriorityLevel | null> = {
+  exam: 'high',
+  placement_drive: 'high',
+  guest_lecture: 'medium',
+  workshop: 'medium',
+  club_activity: 'low',
+  regular: null,
+  remedial: null,
+  project: null,
+  event: null,
+  industrial_visit: null,
+  other: null,
+};
+
+export const PRIORITY_CONFIG: Record<PriorityLevel, { label: string; emoji: string; className: string }> = {
+  high: { label: 'HIGH', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' },
+  medium: { label: 'MEDIUM', emoji: '🟡', className: 'bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:border-yellow-800' },
+  low: { label: 'LOW', emoji: '🟢', className: 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' },
+};
 
 export default function BookingPage() {
   const [searchParams] = useSearchParams();
@@ -81,20 +102,37 @@ export default function BookingPage() {
   const getAvailableBookingTypes = () => {
     if (user?.role === 'student') {
       return [
-        { value: 'regular', label: 'Regular' },
-        { value: 'project', label: 'Project Work' },
-        { value: 'others', label: 'Others' },
+        { value: 'regular' as BookingType, label: 'Regular' },
+        { value: 'project' as BookingType, label: 'Project Work' },
+        { value: 'club_activity' as BookingType, label: 'Club Activity' },
+        { value: 'other' as BookingType, label: 'Others' },
+      ];
+    }
+    if (user?.role === 'club') {
+      return [
+        { value: 'club_activity' as BookingType, label: 'Club Activity' },
+        { value: 'workshop' as BookingType, label: 'Workshop' },
+        { value: 'guest_lecture' as BookingType, label: 'Guest Lecture' },
+        { value: 'other' as BookingType, label: 'Others' },
       ];
     }
     return [
-      { value: 'regular', label: 'Regular' },
-      { value: 'remedial', label: 'Remedial Class' },
-      { value: 'project', label: 'Project Work' },
-      { value: 'event', label: 'Event' },
-      { value: 'industrial_visit', label: 'Industrial Visit' },
-      { value: 'others', label: 'Others' },
+      { value: 'regular' as BookingType, label: 'Regular' },
+      { value: 'remedial' as BookingType, label: 'Remedial Class' },
+      { value: 'project' as BookingType, label: 'Project Work' },
+      { value: 'exam' as BookingType, label: 'Exam' },
+      { value: 'placement_drive' as BookingType, label: 'Placement Drive' },
+      { value: 'guest_lecture' as BookingType, label: 'Guest Lecture' },
+      { value: 'workshop' as BookingType, label: 'Workshop' },
+      { value: 'club_activity' as BookingType, label: 'Club Activity' },
+      { value: 'event' as BookingType, label: 'Event' },
+      { value: 'industrial_visit' as BookingType, label: 'Industrial Visit' },
+      { value: 'other' as BookingType, label: 'Others' },
     ];
   };
+
+  const isAdmin = ['admin', 'infraAdmin', 'itAdmin'].includes(user?.role || '');
+  const currentPriority = BOOKING_TYPE_PRIORITY[bookingType];
 
   useEffect(() => {
     if (preselectedResourceId) {
@@ -294,13 +332,34 @@ export default function BookingPage() {
                     <SelectValue placeholder="Select booking type..." />
                   </SelectTrigger>
                   <SelectContent>
-                    {getAvailableBookingTypes().map((type) => (
-                      <SelectItem key={type.value} value={type.value}>
-                        {type.label}
-                      </SelectItem>
-                    ))}
+                    {getAvailableBookingTypes().map((type) => {
+                      const priority = BOOKING_TYPE_PRIORITY[type.value];
+                      const priorityCfg = priority ? PRIORITY_CONFIG[priority] : null;
+                      return (
+                        <SelectItem key={type.value} value={type.value}>
+                          <span className="flex items-center gap-2">
+                            {type.label}
+                            {isAdmin && priorityCfg && (
+                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${priorityCfg.className}`}>
+                                {priorityCfg.emoji} {priorityCfg.label}
+                              </span>
+                            )}
+                          </span>
+                        </SelectItem>
+                      );
+                    })}
                   </SelectContent>
                 </Select>
+                {/* Admin-only priority indicator below select */}
+                {isAdmin && currentPriority && (() => {
+                  const cfg = PRIORITY_CONFIG[currentPriority];
+                  return (
+                    <div className={`flex items-center gap-1.5 text-xs font-semibold px-2 py-1 rounded-md border w-fit ${cfg.className}`}>
+                      <span>{cfg.emoji}</span>
+                      <span>Priority: {cfg.label}</span>
+                    </div>
+                  );
+                })()}
               </div>
 
               <Button type="submit" className="w-full" size="lg">

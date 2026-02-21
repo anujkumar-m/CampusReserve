@@ -3,7 +3,40 @@ const Resource = require('../models/Resource');
 const User = require('../models/User');
 const BookingAuditLog = require('../models/BookingAuditLog');
 const { calculateDuration } = require('../middleware/bookingValidation');
+const { doTimeSlotsOverlap } = require('../utils/clashDetection');
 const { sendRescheduleNotification, sendApprovalNotification, sendRejectionNotification, sendVenueChangeNotification } = require('../utils/notificationHelper');
+
+/**
+ * Clear stale conflictWarning on active siblings after a booking is rejected/cancelled.
+ */
+async function clearSiblingConflicts(rejectedOrCancelledBooking) {
+    const { resourceId, date, _id } = rejectedOrCancelledBooking;
+    const siblings = await Booking.find({
+        _id: { $ne: _id },
+        resourceId,
+        date,
+        status: { $in: ['auto_approved', 'pending_hod', 'pending_admin', 'approved'] },
+    });
+    for (const sibling of siblings) {
+        const pointed = sibling.conflictWarning &&
+            sibling.conflictWarning.hasConflict &&
+            sibling.conflictWarning.conflictingBookingId &&
+            sibling.conflictWarning.conflictingBookingId.toString() === _id.toString();
+        if (!pointed) continue;
+        const stillConflicts = siblings.some(
+            (other) =>
+                other._id.toString() !== sibling._id.toString() &&
+                doTimeSlotsOverlap(sibling.timeSlot, other.timeSlot)
+        );
+        await Booking.findByIdAndUpdate(sibling._id, {
+            $set: {
+                'conflictWarning.hasConflict': stillConflicts,
+                'conflictWarning.conflictingBookingId': stillConflicts ? sibling.conflictWarning.conflictingBookingId : null,
+                'conflictWarning.conflictDetails': stillConflicts ? sibling.conflictWarning.conflictDetails : '',
+            },
+        });
+    }
+}
 
 // @desc    Reschedule booking (Admin only)
 // @route   PUT /api/bookings/:id/reschedule
@@ -226,6 +259,9 @@ exports.rejectBookingAdmin = async (req, res) => {
         booking.rejectedAt = new Date();
         booking.rejectionReason = reason;
         await booking.save();
+
+        // Clear stale conflict warnings on sibling bookings
+        await clearSiblingConflicts(booking);
 
         // ✅ Send rejection notification to user
         await sendRejectionNotification(

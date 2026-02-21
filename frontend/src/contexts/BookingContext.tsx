@@ -1,9 +1,10 @@
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Resource, Booking, BookingStatus } from '@/types';
 import { resourceService } from '@/services/resourceService';
 import { bookingService } from '@/services/bookingService';
 import { useToast } from '@/hooks/use-toast';
+import { computeConflicts } from '@/utils/bookingUtils';
 
 interface BookingContextType {
   resources: Resource[];
@@ -18,7 +19,7 @@ interface BookingContextType {
   deleteBooking: (id: string) => Promise<void>;
   approveBooking: (id: string) => Promise<void>;
   rejectBooking: (id: string, reason: string) => Promise<void>;
-  cancelBooking: (id: string) => Promise<void>;
+  cancelBooking: (id: string, reason?: string) => Promise<void>;
   getPendingApprovals: () => Promise<Booking[]>;
   getResourceById: (id: string) => Resource | undefined;
   getBookingsByUser: (userId: string) => Booking[];
@@ -45,11 +46,17 @@ export function BookingProvider({ children }: { children: ReactNode }) {
   });
 
   // Fetch bookings - only when authenticated
-  const { data: bookings = [], isLoading: isLoadingBookings } = useQuery({
+  const { data: rawBookings = [], isLoading: isLoadingBookings } = useQuery({
     queryKey: ['bookings'],
     queryFn: () => bookingService.getAll(),
     enabled: isAuthenticated, // Only fetch when user is logged in
+    refetchInterval: 10000,   // Re-check for updates every 10 seconds
+    refetchOnWindowFocus: true, // Re-fetch when user switches back to tab
   });
+
+  // Enrich bookings with dynamically computed conflict info
+  // This runs for ALL bookings (old and new) on every fetch
+  const bookings = useMemo(() => computeConflicts(rawBookings), [rawBookings]);
 
   // Add resource mutation
   const addResourceMutation = useMutation({
@@ -151,7 +158,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
 
   // Cancel booking mutation
   const cancelBookingMutation = useMutation({
-    mutationFn: (id: string) => bookingService.cancel(id),
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => bookingService.cancel(id, reason),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['bookings'] });
       toast({ title: 'Success', description: 'Booking cancelled successfully' });
@@ -183,7 +190,7 @@ export function BookingProvider({ children }: { children: ReactNode }) {
         deleteBooking: async (id) => { await deleteBookingMutation.mutateAsync(id); },
         approveBooking: async (id) => { await approveBookingMutation.mutateAsync(id); },
         rejectBooking: async (id, reason) => { await rejectBookingMutation.mutateAsync({ id, reason }); },
-        cancelBooking: async (id) => { await cancelBookingMutation.mutateAsync(id); },
+        cancelBooking: async (id, reason?) => { await cancelBookingMutation.mutateAsync({ id, reason }); },
         getPendingApprovals: async () => { return await bookingService.getPendingApprovals(); },
         getResourceById,
         getBookingsByUser,

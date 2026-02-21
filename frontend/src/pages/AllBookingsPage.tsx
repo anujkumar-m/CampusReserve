@@ -4,7 +4,7 @@ import { BookingCard } from '@/components/BookingCard';
 import { AdminBookingCard } from '@/components/AdminBookingCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Input } from '@/components/ui/input';
-import { Calendar as CalendarIcon, Clock, CheckCircle, XCircle, Search, X, Filter } from 'lucide-react';
+import { Calendar as CalendarIcon, Clock, CheckCircle, XCircle, Search, X, Filter, AlertTriangle } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Button } from '@/components/ui/button';
@@ -53,6 +53,7 @@ export default function AllBookingsPage() {
   );
   const approvedBookings = filteredBookings.filter((b) => b.status === 'approved');
   const rejectedBookings = filteredBookings.filter((b) => b.status === 'rejected');
+  const conflictingBookings = filteredBookings.filter((b) => b.conflictWarning?.hasConflict);
 
   const isAdmin = ['admin', 'infraAdmin', 'itAdmin'].includes(user?.role || '');
   const BookingComponent = isAdmin ? AdminBookingCard : BookingCard;
@@ -153,6 +154,15 @@ export default function AllBookingsPage() {
               <XCircle className="h-4 w-4" />
               Rejected ({rejectedBookings.length})
             </TabsTrigger>
+            {isAdmin && conflictingBookings.length > 0 && (
+              <TabsTrigger value="conflicts" className="gap-2 text-red-600 data-[state=active]:text-red-600 data-[state=active]:border-red-500">
+                <AlertTriangle className="h-4 w-4" />
+                Conflicts
+                <span className="ml-1 px-1.5 py-0.5 text-xs font-bold bg-red-100 text-red-700 rounded-full animate-pulse">
+                  {conflictingBookings.length}
+                </span>
+              </TabsTrigger>
+            )}
           </TabsList>
 
           <TabsContent value="all" className="space-y-4 pt-2">
@@ -204,6 +214,29 @@ export default function AllBookingsPage() {
               <EmptyState message="No rejected bookings found" />
             )}
           </TabsContent>
+
+          {/* Conflicts tab — admin only */}
+          {isAdmin && (
+            <TabsContent value="conflicts" className="space-y-4 pt-2">
+              {conflictingBookings.length > 0 ? (
+                <>
+                  <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                    <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
+                    <p className="text-sm text-red-700 font-medium">
+                      {conflictingBookings.length} booking{conflictingBookings.length !== 1 ? 's have' : ' has'} overlapping time slots for the same resource. Review and reject the lower-priority one.
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {conflictingBookings.map((booking) => (
+                      <BookingComponent key={booking.id} booking={booking} />
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <EmptyState message="No conflicting bookings" />
+              )}
+            </TabsContent>
+          )}
         </Tabs>
       </div>
     </div>

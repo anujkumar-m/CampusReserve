@@ -32,7 +32,7 @@ const bookingSchema = new mongoose.Schema({
     },
     bookingType: {
         type: String,
-        enum: ['regular', 'remedial', 'project', 'event', 'industrial_visit', 'other'],
+        enum: ['regular', 'remedial', 'project', 'event', 'industrial_visit', 'exam', 'placement_drive', 'guest_lecture', 'workshop', 'club_activity', 'other'],
         default: 'regular'
     },
     duration: {
@@ -68,6 +68,10 @@ const bookingSchema = new mongoose.Schema({
         type: Date
     },
     rejectionReason: {
+        type: String,
+        trim: true
+    },
+    cancellationReason: {
         type: String,
         trim: true
     },

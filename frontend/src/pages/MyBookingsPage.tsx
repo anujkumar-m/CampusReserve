@@ -4,10 +4,26 @@ import { BookingCard } from '@/components/BookingCard';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Calendar, Clock, CheckCircle, XCircle, Ban } from 'lucide-react';
 import { canCancelBooking } from '@/utils/bookingUtils';
+import { useState } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function MyBookingsPage() {
   const { user } = useAuth();
   const { getBookingsByUser, cancelBooking } = useBooking();
+
+  const [cancelDialogOpen, setCancelDialogOpen] = useState(false);
+  const [pendingCancelId, setPendingCancelId] = useState<string | null>(null);
+  const [cancelReason, setCancelReason] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!user) return null;
 
@@ -17,9 +33,21 @@ export default function MyBookingsPage() {
   const rejectedBookings = bookings.filter((b) => b.status === 'rejected');
   const cancelledBookings = bookings.filter((b) => b.status === 'cancelled');
 
-  const handleCancel = async (id: string) => {
-    if (confirm('Are you sure you want to cancel this booking?')) {
-      await cancelBooking(id);
+  const handleCancel = (id: string) => {
+    setPendingCancelId(id);
+    setCancelReason('');
+    setCancelDialogOpen(true);
+  };
+
+  const handleConfirmCancel = async () => {
+    if (!pendingCancelId || !cancelReason.trim()) return;
+    setIsSubmitting(true);
+    try {
+      await cancelBooking(pendingCancelId, cancelReason.trim());
+      setCancelDialogOpen(false);
+    } finally {
+      setIsSubmitting(false);
+      setPendingCancelId(null);
     }
   };
 
@@ -135,6 +163,55 @@ export default function MyBookingsPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      {/* Cancellation Reason Dialog */}
+      <Dialog open={cancelDialogOpen} onOpenChange={(open) => { if (!open) setCancelDialogOpen(false); }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Ban className="h-5 w-5 text-destructive" />
+              Cancel Booking
+            </DialogTitle>
+            <DialogDescription>
+              Please provide a reason for cancelling this booking. This will be visible to the admin.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-2 py-2">
+            <label className="text-sm font-medium text-foreground">
+              Cancellation Reason <span className="text-destructive">*</span>
+            </label>
+            <Textarea
+              placeholder="e.g. Change in schedule, event postponed..."
+              value={cancelReason}
+              onChange={(e) => setCancelReason(e.target.value)}
+              rows={4}
+              className="resize-none"
+              autoFocus
+            />
+            {cancelReason.length === 0 && (
+              <p className="text-xs text-muted-foreground">Reason is required to cancel.</p>
+            )}
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCancelDialogOpen(false)}
+              disabled={isSubmitting}
+            >
+              Keep Booking
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleConfirmCancel}
+              disabled={!cancelReason.trim() || isSubmitting}
+            >
+              {isSubmitting ? 'Cancelling...' : 'Confirm Cancellation'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

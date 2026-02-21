@@ -2,7 +2,7 @@ import { Booking } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookingStatusBadge } from './BookingStatusBadge';
-import { Calendar, Clock, MapPin, User, Ban, AlertCircle } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Ban, AlertCircle, AlertTriangle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -53,6 +53,13 @@ export function BookingCard({
                   <span className="flex items-center gap-1 text-[10px] font-bold text-orange-600 bg-orange-100 px-1.5 py-0.5 rounded animate-pulse">
                     <AlertCircle className="h-3 w-3" />
                     INFORM HOD
+                  </span>
+                )}
+              {booking.conflictWarning?.hasConflict &&
+                !['rejected', 'cancelled'].includes(booking.status) && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold text-red-600 bg-red-100 px-1.5 py-0.5 rounded animate-pulse" title="Time conflict detected with another booking">
+                    <AlertTriangle className="h-3 w-3" />
+                    CONFLICT
                   </span>
                 )}
             </div>
@@ -108,11 +115,33 @@ export function BookingCard({
             </div>
           )}
 
+        {/* Conflict Warning — hide once resolved (rejected or cancelled) */}
+        {booking.conflictWarning?.hasConflict &&
+          !['rejected', 'cancelled'].includes(booking.status) && (
+            <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex gap-2">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-red-700">⚠️ Time Conflict Detected</p>
+                <p className="text-xs text-red-600 mt-0.5">
+                  Another booking exists for this resource at an overlapping time. An admin will resolve this.
+                </p>
+              </div>
+            </div>
+          )}
+
         {/* Show rejection reason if rejected */}
         {booking.status === 'rejected' && booking.rejectionReason && (
-          <div className="mt-3 p-2 rounded-lg bg-destructive/10 border border-destructive/20">
-            <p className="text-xs font-medium text-destructive mb-1">Rejection Reason:</p>
+          <div className="mt-3 p-3 rounded-lg bg-destructive/10 border border-destructive/20">
+            <p className="text-xs font-semibold text-destructive mb-1">❌ Rejection Reason</p>
             <p className="text-xs text-muted-foreground">{booking.rejectionReason}</p>
+          </div>
+        )}
+
+        {/* Show cancellation reason if cancelled */}
+        {booking.status === 'cancelled' && booking.cancellationReason && (
+          <div className="mt-3 p-3 rounded-lg bg-orange-500/10 border border-orange-500/20">
+            <p className="text-xs font-semibold text-orange-700 mb-1">🚫 Cancellation Reason</p>
+            <p className="text-xs text-muted-foreground">{booking.cancellationReason}</p>
           </div>
         )}
 

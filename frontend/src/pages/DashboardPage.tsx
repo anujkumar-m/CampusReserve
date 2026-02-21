@@ -1,7 +1,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useBooking } from '@/contexts/BookingContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Building2, Calendar, Clock, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Building2, Calendar, Clock, CheckCircle, XCircle, AlertCircle, AlertTriangle } from 'lucide-react';
 import { BookingCard } from '@/components/BookingCard';
 import { ResourceCard } from '@/components/ResourceCard';
 import FacultyOnboardingDialog from '@/components/FacultyOnboardingDialog';
@@ -44,6 +44,9 @@ export default function DashboardPage() {
     rejectedCount: (isAdmin || user.role === 'department')
       ? bookings.filter((b) => b.status === 'rejected').length
       : userBookings.filter((b) => b.status === 'rejected').length,
+    conflictCount: isAdmin
+      ? bookings.filter((b) => b.conflictWarning?.hasConflict).length
+      : 0,
   };
 
   const recentBookings = (isAdmin || user.role === 'department')
@@ -79,7 +82,8 @@ export default function DashboardPage() {
 
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className={`grid grid-cols-1 sm:grid-cols-2 gap-4 ${isAdmin && stats.conflictCount > 0 ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        }`}>
         <Card className="stat-card card-interactive">
           <CardContent className="p-5">
             <div className="flex items-center justify-between">
@@ -141,6 +145,24 @@ export default function DashboardPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Conflicts card — admin only, shown only when conflicts exist */}
+        {isAdmin && stats.conflictCount > 0 && (
+          <Card className="stat-card card-interactive border-red-300 dark:border-red-800">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-red-600 dark:text-red-400">⚠️ Conflicts</p>
+                  <p className="text-2xl font-bold text-red-600 dark:text-red-400 mt-1">{stats.conflictCount}</p>
+                  <p className="text-xs text-red-500 mt-1">need resolution</p>
+                </div>
+                <div className="h-12 w-12 rounded-xl bg-red-500/10 flex items-center justify-center animate-pulse">
+                  <AlertTriangle className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
       </div>
 
       {/* Recent Activity & Resources */}

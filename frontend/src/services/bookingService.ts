@@ -75,8 +75,8 @@ export const bookingService = {
     },
 
     // Cancel booking
-    cancel: async (id: string): Promise<void> => {
-        await api.put(`/bookings/${id}/cancel`);
+    cancel: async (id: string, reason?: string): Promise<void> => {
+        await api.put(`/bookings/${id}/cancel`, { reason });
     },
 
     // Update booking status (legacy)

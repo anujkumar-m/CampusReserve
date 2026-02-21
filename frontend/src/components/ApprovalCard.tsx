@@ -10,6 +10,8 @@ import { Calendar, Clock, MapPin, User, Building2, AlertTriangle, Edit } from 'l
 import { RescheduleBookingDialog } from './RescheduleBookingDialog';
 import { format } from 'date-fns';
 import { canApproveBooking } from '@/utils/bookingUtils';
+import { BOOKING_TYPE_PRIORITY, PRIORITY_CONFIG } from '@/pages/BookingPage';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface ApprovalCardProps {
     booking: Booking;
@@ -18,10 +20,15 @@ interface ApprovalCardProps {
 }
 
 export const ApprovalCard = ({ booking, onApprove, onReject }: ApprovalCardProps) => {
+    const { user } = useAuth();
     const [isRejecting, setIsRejecting] = useState(false);
     const [rescheduleOpen, setRescheduleOpen] = useState(false);
     const [rejectionReason, setRejectionReason] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+
+    const isAdmin = ['admin', 'infraAdmin', 'itAdmin'].includes(user?.role || '');
+    const priority = BOOKING_TYPE_PRIORITY[booking.bookingType];
+    const priorityCfg = priority ? PRIORITY_CONFIG[priority] : null;
 
     const handleApprove = async () => {
         setIsLoading(true);
@@ -53,9 +60,14 @@ export const ApprovalCard = ({ booking, onApprove, onReject }: ApprovalCardProps
                     <div className="space-y-1">
                         <CardTitle className="text-xl">{booking.resourceName}</CardTitle>
                         <CardDescription>
-                            <div className="flex items-center gap-2 mt-1">
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <Badge variant="outline">{booking.resourceType?.replace('_', ' ')}</Badge>
-                                <Badge variant="secondary">{booking.bookingType}</Badge>
+                                <Badge variant="secondary">{booking.bookingType.replace(/_/g, ' ')}</Badge>
+                                {isAdmin && priorityCfg && (
+                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${priorityCfg.className}`}>
+                                        {priorityCfg.emoji} Priority: {priorityCfg.label}
+                                    </span>
+                                )}
                             </div>
                         </CardDescription>
                     </div>
@@ -82,6 +94,15 @@ export const ApprovalCard = ({ booking, onApprove, onReject }: ApprovalCardProps
                             </p>
                         </div>
                     </div>
+
+                    <div className="flex items-center gap-2 text-sm">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                            <p className="font-medium text-muted-foreground text-xs">Requested on</p>
+                            <p className="font-semibold">{format(new Date(booking.createdAt), 'PPP')}</p>
+                            <p className="text-xs text-muted-foreground">{format(new Date(booking.createdAt), 'hh:mm a')}</p>
+                        </div>
+                    </div>
                 </div>
 
                 <div className="space-y-2">
@@ -93,6 +114,29 @@ export const ApprovalCard = ({ booking, onApprove, onReject }: ApprovalCardProps
                         </div>
                     </div>
                 </div>
+
+                {/* Conflict Warning — shown prominently before approve/reject */}
+                {booking.conflictWarning?.hasConflict && (
+                    <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/30">
+                        <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-5 w-5 text-red-600 shrink-0 mt-0.5" />
+                            <div>
+                                <p className="text-sm font-bold text-red-700">⚠️ Time Conflict Detected</p>
+                                <p className="text-xs text-red-600 mt-1">
+                                    This booking overlaps with another existing booking for the same resource.
+                                </p>
+                                {booking.conflictWarning.conflictDetails && (
+                                    <p className="text-xs font-mono text-red-500 mt-1 bg-red-50 dark:bg-red-950/30 px-2 py-1 rounded">
+                                        {booking.conflictWarning.conflictDetails}
+                                    </p>
+                                )}
+                                <p className="text-xs text-red-600 font-semibold mt-2">
+                                    ⚡ Please review both bookings and reject the lower-priority one.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 {isRejecting && (
                     <div className="space-y-2 pt-4 border-t">

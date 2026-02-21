@@ -20,6 +20,9 @@ export default function ApprovalsPage() {
     try {
       setIsLoading(true);
       const bookings = await getPendingApprovals();
+      // Use backend conflict data directly — the backend performs a live cross-check
+      // against ALL active bookings (including approved ones), so client-side
+      // computeConflicts() would give incomplete results (it only sees pending bookings).
       setPendingBookings(bookings);
     } catch (error) {
       console.error('Failed to load pending approvals:', error);

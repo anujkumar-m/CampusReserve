@@ -72,7 +72,14 @@ export type BookingType =
   | 'project'
   | 'event'
   | 'industrial_visit'
+  | 'exam'
+  | 'placement_drive'
+  | 'guest_lecture'
+  | 'workshop'
+  | 'club_activity'
   | 'other';
+
+export type PriorityLevel = 'high' | 'medium' | 'low';
 
 export interface TimeSlot {
   start: string;
@@ -110,8 +117,15 @@ export interface Booking {
   };
   rejectedAt?: string;
   rejectionReason?: string;
+  cancellationReason?: string;
+
   createdAt: string;
   department?: string;
+  conflictWarning?: {
+    hasConflict: boolean;
+    conflictingBookingId?: string;
+    conflictDetails?: string;
+  };
 }
 
 export interface DashboardStats {

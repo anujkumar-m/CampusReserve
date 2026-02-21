@@ -4,6 +4,49 @@ const User = require('../models/User');
 const BookingAuditLog = require('../models/BookingAuditLog');
 const { calculateDuration, determineApprovalLevel } = require('../middleware/bookingValidation');
 const { canUserApprove } = require('../utils/approvalRouter');
+const { doTimeSlotsOverlap } = require('../utils/clashDetection');
+
+/**
+ * When a booking is rejected or cancelled, clear the conflictWarning on any
+ * other ACTIVE bookings that were previously pointing at it as a conflict.
+ * Also re-evaluate whether those siblings still conflict with anything else.
+ */
+async function clearSiblingConflicts(rejectedOrCancelledBooking) {
+    const { resourceId, date, timeSlot, _id } = rejectedOrCancelledBooking;
+
+    // Find all OTHER active bookings on the same resource + date
+    const siblings = await Booking.find({
+        _id: { $ne: _id },
+        resourceId,
+        date,
+        status: { $in: ['auto_approved', 'pending_hod', 'pending_admin', 'approved'] },
+    });
+
+    for (const sibling of siblings) {
+        // Only touch siblings whose stored warning pointed at the now-dead booking
+        const pointed = sibling.conflictWarning &&
+            sibling.conflictWarning.hasConflict &&
+            sibling.conflictWarning.conflictingBookingId &&
+            sibling.conflictWarning.conflictingBookingId.toString() === _id.toString();
+
+        if (!pointed) continue;
+
+        // Check whether the sibling still conflicts with any remaining active booking
+        const stillConflicts = siblings.some(
+            (other) =>
+                other._id.toString() !== sibling._id.toString() &&
+                doTimeSlotsOverlap(sibling.timeSlot, other.timeSlot)
+        );
+
+        await Booking.findByIdAndUpdate(sibling._id, {
+            $set: {
+                'conflictWarning.hasConflict': stillConflicts,
+                'conflictWarning.conflictingBookingId': stillConflicts ? sibling.conflictWarning.conflictingBookingId : null,
+                'conflictWarning.conflictDetails': stillConflicts ? sibling.conflictWarning.conflictDetails : '',
+            },
+        });
+    }
+}
 
 // @desc    Get all bookings
 // @route   GET /api/bookings
@@ -62,6 +105,76 @@ exports.getBookings = async (req, res) => {
             return true;
         });
 
+        // ── Dynamic conflict re-check ──────────────────────────────────────────
+        // For non-admin users we only have their own bookings in filteredBookings,
+        // so we can't compute cross-user conflicts on these alone.
+        // Instead we query the DB for all other active bookings on the same
+        // resource+date and mark a conflict if any time slot overlaps.
+        const ACTIVE_STATUSES = ['auto_approved', 'pending_hod', 'pending_admin', 'approved'];
+        const isAdminRole = ['admin', 'infraAdmin', 'itAdmin', 'infrastructure', 'itService'].includes(req.user.role);
+
+        let liveConflictMap = {};  // bookingId -> { hasConflict, conflictDetails }
+
+        if (isAdminRole && filteredBookings.length > 0) {
+            // Admins can see all bookings — compute live conflicts across the full set
+            const activeBookings = filteredBookings.filter(b => ACTIVE_STATUSES.includes(b.status));
+            for (const booking of activeBookings) {
+                const rid = booking.resourceId._id.toString();
+                const peer = activeBookings.find(
+                    (other) =>
+                        other._id.toString() !== booking._id.toString() &&
+                        other.resourceId._id.toString() === rid &&
+                        other.date === booking.date &&
+                        doTimeSlotsOverlap(booking.timeSlot, other.timeSlot)
+                );
+                if (peer) {
+                    const peerUserName = peer.userId?.name || 'another user';
+                    liveConflictMap[booking._id.toString()] = {
+                        hasConflict: true,
+                        conflictingBookingId: peer._id,
+                        conflictDetails: `Conflicts with ${peerUserName}'s booking on ${peer.date} from ${peer.timeSlot.start}–${peer.timeSlot.end}`,
+                    };
+                }
+            }
+        } else if (!isAdminRole && filteredBookings.length > 0) {
+            // Non-admin: only sees own bookings, so cross-check against all other users' active bookings
+            const activeSelf = filteredBookings.filter(b => ACTIVE_STATUSES.includes(b.status));
+
+            if (activeSelf.length > 0) {
+                const resourceObjectIds = [...new Map(
+                    activeSelf.map(b => [b.resourceId._id.toString(), b.resourceId._id])
+                ).values()];
+                const dates = [...new Set(activeSelf.map(b => b.date))];
+
+                const allOtherBookings = await Booking.find({
+                    resourceId: { $in: resourceObjectIds },
+                    date: { $in: dates },
+                    status: { $in: ACTIVE_STATUSES },
+                    userId: { $ne: req.user._id }
+                }).select('resourceId date timeSlot status');
+
+                for (const myBooking of activeSelf) {
+                    const myResourceId = myBooking.resourceId._id.toString();
+                    const myDate = myBooking.date;
+                    for (const other of allOtherBookings) {
+                        if (
+                            other.resourceId.toString() === myResourceId &&
+                            other.date === myDate &&
+                            doTimeSlotsOverlap(myBooking.timeSlot, other.timeSlot)
+                        ) {
+                            liveConflictMap[myBooking._id.toString()] = {
+                                hasConflict: true,
+                                conflictingBookingId: other._id,
+                                conflictDetails: `Conflicts with another booking on ${other.date} from ${other.timeSlot.start}–${other.timeSlot.end}`,
+                            };
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        // ── End dynamic conflict re-check ─────────────────────────────────────
+
         const formattedBookings = filteredBookings.map(booking => ({
             id: booking._id,
             resourceId: booking.resourceId._id,
@@ -93,6 +206,12 @@ exports.getBookings = async (req, res) => {
             } : null,
             rejectedAt: booking.rejectedAt,
             rejectionReason: booking.rejectionReason,
+            cancellationReason: booking.cancellationReason,
+            // Always use live conflict result. Rejected/cancelled never have conflicts.
+            // Never fall back to stale DB-stored conflictWarning.
+            conflictWarning: (ACTIVE_STATUSES.includes(booking.status) && liveConflictMap[booking._id.toString()])
+                ? liveConflictMap[booking._id.toString()]
+                : { hasConflict: false },
             createdAt: booking.createdAt,
             department: booking.department,
         }));
@@ -176,6 +295,7 @@ exports.getPendingBookings = async (req, res) => {
             timeSlot: booking.timeSlot,
             purpose: booking.purpose,
             status: booking.status,
+            conflictWarning: booking.conflictWarning || { hasConflict: false },
             createdAt: booking.createdAt,
             department: booking.department,
         }));
@@ -630,6 +750,9 @@ exports.rejectBooking = async (req, res) => {
         booking.rejectionReason = reason;
         await booking.save();
 
+        // Clear stale conflict warnings on sibling bookings
+        await clearSiblingConflicts(booking);
+
         // Create audit log entry
         await BookingAuditLog.create({
             bookingId: booking._id,
@@ -673,8 +796,9 @@ exports.cancelBooking = async (req, res) => {
             });
         }
 
-        // Check authorization - user can cancel their own bookings, admin can cancel any
-        if (req.user.role !== 'admin' && booking.userId.toString() !== req.user._id.toString()) {
+        // Check authorization - user can cancel their own bookings, admin roles can cancel any
+        const isAdminRole = ['admin', 'infraAdmin', 'itAdmin'].includes(req.user.role);
+        if (!isAdminRole && booking.userId.toString() !== req.user._id.toString()) {
             return res.status(403).json({
                 success: false,
                 message: 'Not authorized to cancel this booking',
@@ -689,10 +813,17 @@ exports.cancelBooking = async (req, res) => {
             });
         }
 
-        // Update booking status
+        // Update booking status + cancellation reason atomically
         const previousStatus = booking.status;
-        booking.status = 'cancelled';
-        await booking.save();
+        const { reason } = req.body;
+
+        const updateFields = { status: 'cancelled' };
+        if (reason && reason.trim()) updateFields.cancellationReason = reason.trim();
+
+        await Booking.findByIdAndUpdate(req.params.id, { $set: updateFields });
+
+        // Clear stale conflict warnings on sibling bookings
+        await clearSiblingConflicts(booking);
 
         // Create audit log entry
         await BookingAuditLog.create({
@@ -701,7 +832,9 @@ exports.cancelBooking = async (req, res) => {
             performedBy: req.user._id,
             previousStatus,
             newStatus: 'cancelled',
-            notes: `Cancelled by ${req.user.name}`
+            notes: reason
+                ? `Cancelled by ${req.user.name}: ${reason}`
+                : `Cancelled by ${req.user.name}`
         });
 
         res.status(200).json({
@@ -772,6 +905,47 @@ exports.getBookingsForApproval = async (req, res) => {
             return true;
         });
 
+        // Live conflict re-check: check each pending booking against ALL other
+        // active bookings on the same resource+date (including already-approved ones).
+        const liveConflictMapApproval = {};
+
+        if (validBookings.length > 0) {
+            // Collect the resource+date pairs we care about
+            const resourceObjectIds = [...new Map(
+                validBookings.map(b => [b.resourceId._id.toString(), b.resourceId._id])
+            ).values()];
+            const dates = [...new Set(validBookings.map(b => b.date))];
+
+            // Fetch ALL other active bookings for those resource+date combos
+            const pendingIds = validBookings.map(b => b._id.toString());
+            const otherActiveBookings = await Booking.find({
+                resourceId: { $in: resourceObjectIds },
+                date: { $in: dates },
+                status: { $in: ['auto_approved', 'pending_hod', 'pending_admin', 'approved'] },
+            }).select('resourceId date timeSlot status userId').populate('userId', 'name');
+
+            for (const booking of validBookings) {
+                const rid = booking.resourceId._id.toString();
+                // Check against all other active bookings (both within this set and external)
+                const conflictingOther = otherActiveBookings.find(
+                    (other) =>
+                        other._id.toString() !== booking._id.toString() &&
+                        other.resourceId.toString() === rid &&
+                        other.date === booking.date &&
+                        doTimeSlotsOverlap(booking.timeSlot, other.timeSlot)
+                );
+                if (conflictingOther) {
+                    const conflictUserName = conflictingOther.userId?.name || 'another user';
+                    liveConflictMapApproval[booking._id.toString()] = {
+                        hasConflict: true,
+                        conflictingBookingId: conflictingOther._id,
+                        conflictDetails: `Conflicts with ${conflictUserName}'s booking on ${conflictingOther.date} from ${conflictingOther.timeSlot.start}–${conflictingOther.timeSlot.end}`,
+                    };
+                }
+            }
+        }
+
+
         const formattedBookings = validBookings.map(booking => ({
             id: booking._id,
             resourceId: booking.resourceId._id,
@@ -789,6 +963,7 @@ exports.getBookingsForApproval = async (req, res) => {
             bookingType: booking.bookingType,
             status: booking.status,
             approvalLevel: booking.approvalLevel,
+            conflictWarning: liveConflictMapApproval[booking._id.toString()] || { hasConflict: false },
             createdAt: booking.createdAt,
             department: booking.department,
         }));
