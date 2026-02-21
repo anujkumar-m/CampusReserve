@@ -1,0 +1,13 @@
+# Root-level gitignore
+.DS_Store
+Thumbs.db
+*.log
+
+# Never commit real env files from either sub-project
+frontend/.env
+frontend/.env.local
+frontend/.env.production
+backend/.env
+
+# But keep example templates
+!**/.env.example

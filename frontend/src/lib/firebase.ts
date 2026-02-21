@@ -2,13 +2,13 @@ import { initializeApp } from 'firebase/app';
 import { getAuth, GoogleAuthProvider } from 'firebase/auth';
 
 const firebaseConfig = {
-    apiKey: "AIzaSyA0dVzuKgcIodC1JTFMX8LGQIEK1vVvY54",
-    authDomain: "campusreserve-8b144.firebaseapp.com",
-    projectId: "campusreserve-8b144",
-    storageBucket: "campusreserve-8b144.firebasestorage.app",
-    messagingSenderId: "474590523122",
-    appId: "1:474590523122:web:49dd9a13961ac970d1aa6b",
-    measurementId: "G-ZFGLGC6FS7"
+    apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+    authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+    projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+    storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+    messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+    appId: import.meta.env.VITE_FIREBASE_APP_ID,
+    measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
 // Initialize Firebase
