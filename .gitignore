@@ -3,10 +3,10 @@
 Thumbs.db
 *.log
 
-# Never commit real env files from either sub-project
-frontend/.env
+# Only ignore local overrides for frontend (not .env itself - it has public VITE_ vars)
 frontend/.env.local
-frontend/.env.production
+
+# Keep backend secrets out of git (DB password, JWT secret, etc.)
 backend/.env
 
 # But keep example templates
