@@ -129,6 +129,20 @@ export function AdminBookingCard({ booking }: AdminBookingCardProps) {
                         </div>
                     )}
 
+                    {/* Show reschedule info if booking was rescheduled */}
+                    {booking.rescheduledFrom && (
+                        <div className="mt-3 p-2 rounded-lg bg-blue-500/10 border border-blue-500/20">
+                            <p className="text-xs font-semibold text-blue-700 mb-1">🔄 Rescheduled</p>
+                            <p className="text-xs text-muted-foreground">
+                                Originally: {booking.rescheduledFrom.date}&nbsp;
+                                {booking.rescheduledFrom.timeSlot.start}–{booking.rescheduledFrom.timeSlot.end}
+                            </p>
+                            {booking.rescheduleReason && (
+                                <p className="text-xs text-blue-600 mt-1">Reason: {booking.rescheduleReason}</p>
+                            )}
+                        </div>
+                    )}
+
                     {/* Conflict Warning — visible to admins */}
                     {booking.conflictWarning?.hasConflict && (
                         <div className="mt-3 p-3 rounded-lg bg-red-500/10 border border-red-500/30">

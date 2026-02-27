@@ -145,6 +145,20 @@ export function BookingCard({
           </div>
         )}
 
+        {/* Show reschedule info if the booking was rescheduled */}
+        {booking.rescheduledFrom && (
+          <div className="mt-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
+            <p className="text-xs font-semibold text-blue-700 mb-1">🔄 Rescheduled</p>
+            <p className="text-xs text-muted-foreground">
+              Originally: {booking.rescheduledFrom.date} &nbsp;
+              {booking.rescheduledFrom.timeSlot.start}–{booking.rescheduledFrom.timeSlot.end}
+            </p>
+            {booking.rescheduleReason && (
+              <p className="text-xs text-blue-600 mt-1">Reason: {booking.rescheduleReason}</p>
+            )}
+          </div>
+        )}
+
         {/* Approval actions for HOD/Admin */}
         {showActions && (booking.status === 'pending_hod' || booking.status === 'pending_admin') && (
           <div className="flex gap-2 mt-4 pt-4 border-t border-border">

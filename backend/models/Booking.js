@@ -122,6 +122,10 @@ const bookingSchema = new mongoose.Schema({
             end: String
         }
     },
+    rescheduleReason: {
+        type: String,
+        trim: true,
+    },
     createdAt: {
         type: Date,
         default: Date.now,

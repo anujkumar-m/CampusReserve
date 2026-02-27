@@ -90,6 +90,7 @@ exports.rescheduleBooking = async (req, res) => {
 
         // Update booking with rescheduled info
         booking.rescheduledFrom = oldSchedule;
+        booking.rescheduleReason = reason || null;
         booking.date = date;
         booking.timeSlot = timeSlot;
         booking.duration = duration;

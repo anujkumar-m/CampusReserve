@@ -122,6 +122,11 @@ export interface Booking {
   createdAt: string;
   department?: string;         // resource's department
   bookerDepartment?: string;   // booking user's own department
+  rescheduledFrom?: {
+    date: string;
+    timeSlot: { start: string; end: string };
+  };
+  rescheduleReason?: string;
   conflictWarning?: {
     hasConflict: boolean;
     conflictingBookingId?: string;

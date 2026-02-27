@@ -221,6 +221,8 @@ exports.getBookings = async (req, res) => {
             createdAt: booking.createdAt,
             department: booking.department,
             bookerDepartment: booking.bookerDepartment,
+            rescheduledFrom: booking.rescheduledFrom || null,
+            rescheduleReason: booking.rescheduleReason || null,
         }));
 
         res.status(200).json({
