@@ -120,7 +120,8 @@ export interface Booking {
   cancellationReason?: string;
 
   createdAt: string;
-  department?: string;
+  department?: string;         // resource's department
+  bookerDepartment?: string;   // booking user's own department
   conflictWarning?: {
     hasConflict: boolean;
     conflictingBookingId?: string;

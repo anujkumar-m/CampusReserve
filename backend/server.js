@@ -18,27 +18,15 @@ const app = express();
 connectDB();
 
 // CORS
-const productionOrigins = ['https://campusreserve.vercel.app'];
-const envOrigins = process.env.FRONTEND_URL
-  ? process.env.FRONTEND_URL.split(',').map(o => o.trim())
-  : ['http://localhost:5173'];
-const allowedOrigins = [...new Set([...productionOrigins, ...envOrigins])];
-
-const corsOptions = {
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173').split(',').map(o => o.trim());
+app.use(cors({
   origin: (origin, callback) => {
-    // Allow requests with no origin (e.g. mobile apps, curl, server-to-server)
+    // Allow requests with no origin (e.g. mobile apps, curl)
     if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
     callback(new Error(`CORS: origin ${origin} not allowed`));
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
-};
-
-app.use(cors(corsOptions));
-
-// Handle preflight OPTIONS requests explicitly
-app.options('*', cors(corsOptions));
+}));
 
 // Middleware
 app.use(express.json());
@@ -52,6 +40,7 @@ app.use("/api/resources", resourceRoutes);
 app.use("/api/bookings", bookingRoutes);
 app.use("/api/roles", roleRoutes);
 app.use("/api/notifications", require("./routes/notifications"));
+app.use("/api/booking-types", require("./routes/bookingTypes"));
 app.use("/api/infra", require("./routes/infrastructure"));
 app.use("/api/it", require("./routes/itService"));
 

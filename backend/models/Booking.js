@@ -32,7 +32,7 @@ const bookingSchema = new mongoose.Schema({
     },
     bookingType: {
         type: String,
-        enum: ['regular', 'remedial', 'project', 'event', 'industrial_visit', 'exam', 'placement_drive', 'guest_lecture', 'workshop', 'club_activity', 'other'],
+        trim: true,
         default: 'regular'
     },
     duration: {
@@ -76,7 +76,11 @@ const bookingSchema = new mongoose.Schema({
         trim: true
     },
     department: {
-        type: String,
+        type: String,   // the resource's department (or user's dept if resource has none)
+    },
+    bookerDepartment: {
+        type: String,   // the booking user's own department — used for HOD cross-dept visibility
+        trim: true,
     },
     assignedDepartment: {
         type: String,

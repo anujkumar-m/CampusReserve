@@ -17,6 +17,7 @@ import AllBookingsPage from "@/pages/AllBookingsPage";
 import ApprovalsPage from "@/pages/ApprovalsPage";
 import UsersPage from "@/pages/UsersPage";
 import SettingsPage from "@/pages/SettingsPage";
+import BookingTypesPage from "@/pages/BookingTypesPage";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient({
@@ -53,6 +54,7 @@ const App = () => (
                   <Route path="/bookings" element={<AllBookingsPage />} />
                   <Route path="/approvals" element={<ApprovalsPage />} />
                   <Route path="/users" element={<UsersPage />} />
+                  <Route path="/booking-types" element={<BookingTypesPage />} />
                   <Route path="/settings" element={<SettingsPage />} />
                 </Route>
               </Route>

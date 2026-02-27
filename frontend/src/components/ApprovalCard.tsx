@@ -10,7 +10,7 @@ import { Calendar, Clock, MapPin, User, Building2, AlertTriangle, Edit } from 'l
 import { RescheduleBookingDialog } from './RescheduleBookingDialog';
 import { format } from 'date-fns';
 import { canApproveBooking } from '@/utils/bookingUtils';
-import { BOOKING_TYPE_PRIORITY, PRIORITY_CONFIG } from '@/pages/BookingPage';
+import { PRIORITY_CONFIG } from '@/pages/BookingPage';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ApprovalCardProps {
@@ -27,8 +27,7 @@ export const ApprovalCard = ({ booking, onApprove, onReject }: ApprovalCardProps
     const [isLoading, setIsLoading] = useState(false);
 
     const isAdmin = ['admin', 'infraAdmin', 'itAdmin'].includes(user?.role || '');
-    const priority = BOOKING_TYPE_PRIORITY[booking.bookingType];
-    const priorityCfg = priority ? PRIORITY_CONFIG[priority] : null;
+
 
     const handleApprove = async () => {
         setIsLoading(true);
@@ -63,11 +62,7 @@ export const ApprovalCard = ({ booking, onApprove, onReject }: ApprovalCardProps
                             <div className="flex items-center gap-2 mt-1 flex-wrap">
                                 <Badge variant="outline">{booking.resourceType?.replace('_', ' ')}</Badge>
                                 <Badge variant="secondary">{booking.bookingType.replace(/_/g, ' ')}</Badge>
-                                {isAdmin && priorityCfg && (
-                                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-md border ${priorityCfg.className}`}>
-                                        {priorityCfg.emoji} Priority: {priorityCfg.label}
-                                    </span>
-                                )}
+
                             </div>
                         </CardDescription>
                     </div>

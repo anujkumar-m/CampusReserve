@@ -38,11 +38,17 @@ export default function AllBookingsPage() {
 
     const matchesDate = !selectedDate || isSameDay(parseISO(b.date), selectedDate);
 
-    // Role-based visibility: HODs see their own or their dept's bookings
+    // Role-based visibility: HODs see their own bookings, bookings where the
+    // resource is in their dept, OR bookings where the faculty is from their dept.
+    // This mirrors the backend $or query — backend already filters correctly,
+    // but we also filter here so the client-side search/tab counts stay consistent.
     let matchesRole = true;
     if (user?.role === 'department') {
       const currentUserId = (user as any)._id || user.id;
-      matchesRole = b.userId === currentUserId || b.department === user.department;
+      matchesRole =
+        b.userId === currentUserId ||
+        b.department === user.department ||
+        b.bookerDepartment === user.department;
     }
 
     return matchesSearch && matchesDate && matchesRole;

@@ -26,6 +26,7 @@ import {
   GraduationCap,
   CheckCircle,
   PlusCircle,
+  Tag,
 } from 'lucide-react';
 
 interface NavItem {
@@ -41,6 +42,7 @@ const roleNavItems: Record<UserRole, NavItem[]> = {
     { title: 'All Bookings', url: '/bookings', icon: ClipboardList },
     { title: 'Approvals', url: '/approvals', icon: CheckCircle },
     { title: 'Users', url: '/users', icon: Users },
+    { title: 'Booking Types', url: '/booking-types', icon: Tag },
   ],
   student: [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -51,6 +53,7 @@ const roleNavItems: Record<UserRole, NavItem[]> = {
     { title: 'Infrastructure', url: '/resources', icon: Building2 },
     { title: 'All Bookings', url: '/bookings', icon: ClipboardList },
     { title: 'Approvals', url: '/approvals', icon: CheckCircle },
+    { title: 'Booking Types', url: '/booking-types', icon: Tag },
   ],
   itAdmin: [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },
@@ -58,6 +61,7 @@ const roleNavItems: Record<UserRole, NavItem[]> = {
     { title: 'All Bookings', url: '/bookings', icon: ClipboardList },
     { title: 'Approvals', url: '/approvals', icon: CheckCircle },
     { title: 'Users', url: '/users', icon: Users },
+    { title: 'Booking Types', url: '/booking-types', icon: Tag },
   ],
   infrastructure: [
     { title: 'Dashboard', url: '/dashboard', icon: LayoutDashboard },

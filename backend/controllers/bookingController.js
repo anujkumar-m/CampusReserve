@@ -65,9 +65,14 @@ exports.getBookings = async (req, res) => {
             const movableResources = await Resource.find({ category: 'movable_asset' }).select('_id');
             query.resourceId = { $in: movableResources.map(r => r._id) };
         } else if (req.user.role === 'department') {
+            // Show bookings where:
+            //   a) the resource belongs to the HOD's department, OR
+            //   b) the faculty/user who booked is from the HOD's department, OR
+            //   c) it's the HOD's own booking
             query = {
                 $or: [
                     { department: req.user.department },
+                    { bookerDepartment: req.user.department },
                     { userId: req.user._id }
                 ]
             };
@@ -158,6 +163,7 @@ exports.getBookings = async (req, res) => {
                     const myDate = myBooking.date;
                     for (const other of allOtherBookings) {
                         if (
+                            other._id.toString() !== myBooking._id.toString() && // never compare a booking with itself
                             other.resourceId.toString() === myResourceId &&
                             other.date === myDate &&
                             doTimeSlotsOverlap(myBooking.timeSlot, other.timeSlot)
@@ -214,6 +220,7 @@ exports.getBookings = async (req, res) => {
                 : { hasConflict: false },
             createdAt: booking.createdAt,
             department: booking.department,
+            bookerDepartment: booking.bookerDepartment,
         }));
 
         res.status(200).json({
@@ -249,6 +256,7 @@ exports.getPendingBookings = async (req, res) => {
                 status: { $in: ['pending_admin', 'pending_hod', 'pending'] },
                 $or: [
                     { department: req.user.department },
+                    { bookerDepartment: req.user.department },
                     { userId: req.user._id }
                 ]
             };
@@ -431,6 +439,7 @@ exports.createBooking = async (req, res) => {
             purpose,
             bookingType,
             department: resource.department || req.user.department,
+            bookerDepartment: req.user.department || null,
             status: approvalInfo.status,
             requiresApproval: approvalInfo.requiresApproval,
             approvalLevel: approvalInfo.approvalLevel,
@@ -862,6 +871,7 @@ exports.getBookingsForApproval = async (req, res) => {
                 status: { $in: ['pending_hod', 'pending_admin'] },
                 $or: [
                     { department: req.user.department },
+                    { bookerDepartment: req.user.department },
                     { userId: req.user._id }
                 ]
             };
@@ -906,34 +916,61 @@ exports.getBookingsForApproval = async (req, res) => {
         });
 
         // Live conflict re-check: check each pending booking against ALL other
-        // active bookings on the same resource+date (including already-approved ones).
+        // active bookings on the same resource+date (including already-approved ones),
+        // and also against each other (two pending bookings on the same slot).
         const liveConflictMapApproval = {};
 
         if (validBookings.length > 0) {
-            // Collect the resource+date pairs we care about
+            const pendingIds = validBookings.map(b => b._id.toString());
             const resourceObjectIds = [...new Map(
                 validBookings.map(b => [b.resourceId._id.toString(), b.resourceId._id])
             ).values()];
             const dates = [...new Set(validBookings.map(b => b.date))];
 
-            // Fetch ALL other active bookings for those resource+date combos
-            const pendingIds = validBookings.map(b => b._id.toString());
-            const otherActiveBookings = await Booking.find({
+            // Fetch ONLY confirmed/approved bookings that are NOT in the current pending set.
+            // We intentionally exclude pending_hod / pending_admin here because those belong
+            // to other departments that this user cannot see — including them caused false
+            // conflict warnings for HOD users. Within-set pending conflicts are handled
+            // below in step 2.
+            const externalActiveBookings = await Booking.find({
+                _id: { $nin: pendingIds },
                 resourceId: { $in: resourceObjectIds },
                 date: { $in: dates },
-                status: { $in: ['auto_approved', 'pending_hod', 'pending_admin', 'approved'] },
+                status: { $in: ['auto_approved', 'approved'] },
             }).select('resourceId date timeSlot status userId').populate('userId', 'name');
 
-            for (const booking of validBookings) {
+            for (let i = 0; i < validBookings.length; i++) {
+                const booking = validBookings[i];
                 const rid = booking.resourceId._id.toString();
-                // Check against all other active bookings (both within this set and external)
-                const conflictingOther = otherActiveBookings.find(
+
+                // 1. Check against external active bookings (already approved etc.)
+                let conflictingOther = externalActiveBookings.find(
                     (other) =>
-                        other._id.toString() !== booking._id.toString() &&
                         other.resourceId.toString() === rid &&
                         other.date === booking.date &&
                         doTimeSlotsOverlap(booking.timeSlot, other.timeSlot)
                 );
+
+                // 2. Also check against other pending bookings in this same set
+                if (!conflictingOther) {
+                    conflictingOther = validBookings.find(
+                        (other, j) =>
+                            j !== i &&
+                            other.resourceId._id.toString() === rid &&
+                            other.date === booking.date &&
+                            doTimeSlotsOverlap(booking.timeSlot, other.timeSlot)
+                    );
+                    if (conflictingOther) {
+                        // It's another pending booking in this set
+                        conflictingOther = {
+                            _id: conflictingOther._id,
+                            date: conflictingOther.date,
+                            timeSlot: conflictingOther.timeSlot,
+                            userId: conflictingOther.userId,
+                        };
+                    }
+                }
+
                 if (conflictingOther) {
                     const conflictUserName = conflictingOther.userId?.name || 'another user';
                     liveConflictMapApproval[booking._id.toString()] = {
@@ -980,6 +1017,7 @@ exports.getBookingsForApproval = async (req, res) => {
         });
     }
 };
+
 
 // @desc    Get audit log for booking
 // @route   GET /api/bookings/:id/audit

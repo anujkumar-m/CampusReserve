@@ -13,7 +13,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { bookingService } from '@/services/bookingService';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
-import { BOOKING_TYPE_PRIORITY, PRIORITY_CONFIG } from '@/pages/BookingPage';
+import { PRIORITY_CONFIG } from '@/pages/BookingPage';
+import { PriorityLevel } from '@/types';
 
 interface AdminBookingCardProps {
     booking: Booking;
@@ -78,8 +79,7 @@ export function AdminBookingCard({ booking }: AdminBookingCardProps) {
 
     const isPending = booking.status === 'pending_hod' || booking.status === 'pending_admin' || booking.status === 'auto_approved';
     const isAdmin = ['admin', 'infraAdmin', 'itAdmin'].includes(user?.role || '');
-    const priority = BOOKING_TYPE_PRIORITY[booking.bookingType];
-    const priorityCfg = priority ? PRIORITY_CONFIG[priority] : null;
+
 
     return (
         <>
@@ -89,11 +89,7 @@ export function AdminBookingCard({ booking }: AdminBookingCardProps) {
                         <div className="flex-1 min-w-0">
                             <h3 className="font-semibold text-foreground">{booking.resourceName}</h3>
                             <p className="text-sm text-muted-foreground">{booking.purpose}</p>
-                            {isAdmin && priorityCfg && (
-                                <span className={`inline-flex items-center gap-1 mt-1 text-xs font-semibold px-2 py-0.5 rounded-md border ${priorityCfg.className}`}>
-                                    {priorityCfg.emoji} Priority: {priorityCfg.label}
-                                </span>
-                            )}
+
                         </div>
                         <BookingStatusBadge status={booking.status} />
                     </div>

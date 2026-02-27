@@ -2,7 +2,9 @@ import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useBooking } from '@/contexts/BookingContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { BookingType, PriorityLevel } from '@/types';
+import { useQuery } from '@tanstack/react-query';
+import { bookingTypeService } from '@/services/bookingTypeService';
+import { PriorityLevel } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -15,21 +17,6 @@ import { format } from 'date-fns';
 import { CalendarIcon, Building2, Users, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
-
-// Priority mapping for booking types (admin-visible only)
-export const BOOKING_TYPE_PRIORITY: Record<BookingType, PriorityLevel | null> = {
-  exam: 'high',
-  placement_drive: 'high',
-  guest_lecture: 'medium',
-  workshop: 'medium',
-  club_activity: 'low',
-  regular: null,
-  remedial: null,
-  project: null,
-  event: null,
-  industrial_visit: null,
-  other: null,
-};
 
 export const PRIORITY_CONFIG: Record<PriorityLevel, { label: string; emoji: string; className: string }> = {
   high: { label: 'HIGH', emoji: '🔴', className: 'bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800' },
@@ -51,7 +38,16 @@ export default function BookingPage() {
   const [endTime, setEndTime] = useState('');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>(''); // Duration in hours as string
   const [purpose, setPurpose] = useState('');
-  const [bookingType, setBookingType] = useState<BookingType>('regular');
+  const [bookingType, setBookingType] = useState<string>('');
+
+  // Fetch dynamic booking types from API
+  const { data: dbBookingTypes = [] } = useQuery({
+    queryKey: ['booking-types'],
+    queryFn: bookingTypeService.getAll,
+  });
+
+  // Only show active types
+  const activeBookingTypes = (dbBookingTypes as any[]).filter((t) => t.isActive);
 
   const selectedResource = selectedResourceId ? getResourceById(selectedResourceId) : null;
   const availableResources = resources.filter((r) => r.isAvailable);
@@ -98,41 +94,10 @@ export default function BookingPage() {
     ];
   };
 
-  // Get available booking types based on user role
-  const getAvailableBookingTypes = () => {
-    if (user?.role === 'student') {
-      return [
-        { value: 'regular' as BookingType, label: 'Regular' },
-        { value: 'project' as BookingType, label: 'Project Work' },
-        { value: 'club_activity' as BookingType, label: 'Club Activity' },
-        { value: 'other' as BookingType, label: 'Others' },
-      ];
-    }
-    if (user?.role === 'club') {
-      return [
-        { value: 'club_activity' as BookingType, label: 'Club Activity' },
-        { value: 'workshop' as BookingType, label: 'Workshop' },
-        { value: 'guest_lecture' as BookingType, label: 'Guest Lecture' },
-        { value: 'other' as BookingType, label: 'Others' },
-      ];
-    }
-    return [
-      { value: 'regular' as BookingType, label: 'Regular' },
-      { value: 'remedial' as BookingType, label: 'Remedial Class' },
-      { value: 'project' as BookingType, label: 'Project Work' },
-      { value: 'exam' as BookingType, label: 'Exam' },
-      { value: 'placement_drive' as BookingType, label: 'Placement Drive' },
-      { value: 'guest_lecture' as BookingType, label: 'Guest Lecture' },
-      { value: 'workshop' as BookingType, label: 'Workshop' },
-      { value: 'club_activity' as BookingType, label: 'Club Activity' },
-      { value: 'event' as BookingType, label: 'Event' },
-      { value: 'industrial_visit' as BookingType, label: 'Industrial Visit' },
-      { value: 'other' as BookingType, label: 'Others' },
-    ];
-  };
-
   const isAdmin = ['admin', 'infraAdmin', 'itAdmin'].includes(user?.role || '');
-  const currentPriority = BOOKING_TYPE_PRIORITY[bookingType];
+  // Get the selected type's priority from DB data
+  const selectedDbType = activeBookingTypes.find((t: any) => t.value === bookingType);
+  const currentPriority = selectedDbType?.priority as PriorityLevel | undefined;
 
   useEffect(() => {
     if (preselectedResourceId) {
@@ -167,7 +132,7 @@ export default function BookingPage() {
         end: endTime,
       },
       purpose,
-      bookingType,
+      bookingType: bookingType || 'regular',
     };
 
     addBooking(booking);
@@ -327,29 +292,34 @@ export default function BookingPage() {
               {/* Booking Type */}
               <div className="space-y-2">
                 <Label>Booking Type</Label>
-                <Select value={bookingType} onValueChange={(value) => setBookingType(value as BookingType)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select booking type..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {getAvailableBookingTypes().map((type) => {
-                      const priority = BOOKING_TYPE_PRIORITY[type.value];
-                      const priorityCfg = priority ? PRIORITY_CONFIG[priority] : null;
-                      return (
-                        <SelectItem key={type.value} value={type.value}>
-                          <span className="flex items-center gap-2">
-                            {type.label}
-                            {isAdmin && priorityCfg && (
-                              <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${priorityCfg.className}`}>
-                                {priorityCfg.emoji} {priorityCfg.label}
-                              </span>
-                            )}
-                          </span>
-                        </SelectItem>
-                      );
-                    })}
-                  </SelectContent>
-                </Select>
+                {activeBookingTypes.length === 0 ? (
+                  <p className="text-sm text-muted-foreground italic">
+                    No booking types configured yet. Contact your admin.
+                  </p>
+                ) : (
+                  <Select value={bookingType} onValueChange={setBookingType}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select booking type..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {activeBookingTypes.map((type: any) => {
+                        const priorityCfg = type.priority && PRIORITY_CONFIG[type.priority as PriorityLevel];
+                        return (
+                          <SelectItem key={type.value} value={type.value}>
+                            <span className="flex items-center gap-2">
+                              {type.name}
+                              {isAdmin && priorityCfg && (
+                                <span className={`text-xs font-semibold px-1.5 py-0.5 rounded border ${priorityCfg.className}`}>
+                                  {priorityCfg.emoji} {priorityCfg.label}
+                                </span>
+                              )}
+                            </span>
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
                 {/* Admin-only priority indicator below select */}
                 {isAdmin && currentPriority && (() => {
                   const cfg = PRIORITY_CONFIG[currentPriority];
