@@ -35,6 +35,19 @@ exports.verifyGoogleToken = async (req, res) => {
             });
         }
 
+        // 🔒 Student gate: student emails can ONLY login if an admin pre-registered them.
+        // All other roles (faculty, HOD, club, admin) auto-register on first Google sign-in.
+        const studentPattern = /^([a-z]+)\.([a-z]{2})(\d{2})@bitsathy\.ac\.in$/i;
+        if (studentPattern.test(email)) {
+            const preRegistered = await User.findOne({ email });
+            if (!preRegistered) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Access denied. Students must be registered by an admin before signing in. Please contact your administrator.',
+                });
+            }
+        }
+
         // Check if user exists with this email
         let user = await User.findOne({ email });
 

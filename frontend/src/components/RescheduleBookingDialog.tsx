@@ -66,8 +66,8 @@ export function RescheduleBookingDialog({
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
 
-        if (!date || !startTime || !endTime) {
-            toast.error('Please fill in all required fields');
+        if (!date || !startTime || !endTime || !reason.trim()) {
+            toast.error('Please fill in all required fields including the reason');
             return;
         }
 
@@ -79,7 +79,7 @@ export function RescheduleBookingDialog({
         rescheduleMutation.mutate({
             date,
             timeSlot: { start: startTime, end: endTime },
-            reason: reason || undefined,
+            reason: reason.trim(),
         });
     };
 
@@ -152,13 +152,16 @@ export function RescheduleBookingDialog({
 
                     {/* Reason */}
                     <div className="space-y-2">
-                        <Label htmlFor="reason">Reason (Optional)</Label>
+                        <Label htmlFor="reason">
+                            Reason <span className="text-destructive">*</span>
+                        </Label>
                         <Textarea
                             id="reason"
                             placeholder="Enter reason for rescheduling..."
                             value={reason}
                             onChange={(e) => setReason(e.target.value)}
                             rows={3}
+                            required
                         />
                     </div>
 

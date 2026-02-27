@@ -2,7 +2,7 @@ import { Booking } from '@/types';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookingStatusBadge } from './BookingStatusBadge';
-import { Calendar, Clock, MapPin, User, Ban, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Calendar, Clock, MapPin, User, Ban, AlertCircle, AlertTriangle, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { useAuth } from '@/contexts/AuthContext';
@@ -145,17 +145,26 @@ export function BookingCard({
           </div>
         )}
 
-        {/* Show reschedule info if the booking was rescheduled */}
-        {booking.rescheduledFrom && (
-          <div className="mt-3 p-3 rounded-lg bg-blue-500/10 border border-blue-500/20">
-            <p className="text-xs font-semibold text-blue-700 mb-1">🔄 Rescheduled</p>
-            <p className="text-xs text-muted-foreground">
-              Originally: {booking.rescheduledFrom.date} &nbsp;
-              {booking.rescheduledFrom.timeSlot.start}–{booking.rescheduledFrom.timeSlot.end}
-            </p>
-            {booking.rescheduleReason && (
-              <p className="text-xs text-blue-600 mt-1">Reason: {booking.rescheduleReason}</p>
-            )}
+        {/* Show reschedule info — only when booking was actually rescheduled */}
+        {booking.rescheduledFrom?.date && (
+          <div className="mt-3 rounded-lg border border-blue-200 dark:border-blue-800 overflow-hidden">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/10">
+              <RefreshCw className="h-3.5 w-3.5 text-blue-600" />
+              <p className="text-xs font-semibold text-blue-700 dark:text-blue-400">Rescheduled</p>
+            </div>
+            <div className="px-3 py-2 space-y-0.5">
+              <p className="text-xs text-muted-foreground">
+                <span className="font-medium text-foreground">Was:</span>{' '}
+                {booking.rescheduledFrom.date} &nbsp;
+                {booking.rescheduledFrom.timeSlot.start}–{booking.rescheduledFrom.timeSlot.end}
+              </p>
+              {booking.rescheduleReason && (
+                <p className="text-xs text-muted-foreground">
+                  <span className="font-medium text-foreground">Reason:</span>{' '}
+                  {booking.rescheduleReason}
+                </p>
+              )}
+            </div>
           </div>
         )}
 
