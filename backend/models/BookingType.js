@@ -36,6 +36,5 @@ const bookingTypeSchema = new mongoose.Schema({
 });
 
 bookingTypeSchema.index({ priority: 1 });
-bookingTypeSchema.index({ value: 1 }, { unique: true });
 
 module.exports = mongoose.model('BookingType', bookingTypeSchema);
